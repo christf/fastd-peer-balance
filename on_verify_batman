@@ -11,6 +11,14 @@
 # Managing client count per gateway would be a lot nicer, but the
 # client count for the whole network can only be obtained by querying 
 # other infrastructure (map/api).
+#
+# please append to your fastd.conf (config file of fastd) like following example
+# "// " prefix is key!
+#
+# // minpeers 50
+# // bufferpercentage 10
+# // batctl /usr/local/sbin/batctl
+#
 set -ix
 # things to adjust to your server
 fastdsockets=( "/var/run/fastd/fastd.sock", "/var/run/fastd/fastd2.sock" )
