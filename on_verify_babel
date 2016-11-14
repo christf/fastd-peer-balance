@@ -1,0 +1,48 @@
+#!/bin/bash
+# https://forum.freifunk.net/t/bessere-verteilung-von-knoten-clients-auf-sn-unter-fastd/12445
+
+# peer limit may be used as a failsafe and not be changed.
+# use this script as fastd on_verify to roughly balance peers. 
+# If you feel that management should be even stricter and cause 
+# fastd-peers to re-connect to other gateways, then also use the 
+# cron-script that is adjusting the peer limit. This may be useful after 
+# an outage.
+#
+# Managing client count per gateway would be a lot nicer, but the
+# client count for the whole network can only be obtained by querying 
+# other infrastructure (map/api). While there is a way to determine client
+# count in babel networks today, with future optimizations of l3roamd this
+# feature may be dropped (by communicating only routes that are actually
+# needed instead of everything).
+set -ix
+# things to adjust to your server
+MINPEERS=50
+BUFFERPERCENTAGE=10
+NODENETPREFIX="2a06:8187:fbab:1:"
+NODENETINTERFACE="(mesh-vpn-1312|mesh-vpn-1492) "
+GWINTERFACE="(mesh-vpn) "
+GWPREFIX="2a06:8187:fbab:3:"
+
+gwamount=$(ip -6 r s t 0|grep $GWPREFIX|grep -E "dev $NODENETINTERFACE"|cut -d" " -f3|sort -u|wc -l)
+
+## dirty count fastdconnections, 
+connected_peer_amount=$(ip -6 r s t 0|grep $NODENETPREFIX|grep -E "dev $NODENETINTERFACE"|cut -d" " -f3|sort -u|wc -l)
+
+# estimate network size and amount of gateways
+net_peer_amount=$(( $(ip -6 r s t 0|grep $NODENETPREFIX|grep -E "dev $GWINTERFACE"|cut -d" " -f3|sort -u|wc -l) + connected_peer_amount))
+
+
+# set connection limit and doing so, consider a buffersize
+connection_average_estimate=$(( net_peer_amount / gwamount )) 
+connection_limit_estimate=$((connection_average_estimate + (connection_limit_estimate * BUFFERPERCENTAGE)/100))
+
+[[ $connection_limit_estimate -lt $MINPEERS ]] && connection_limit_estimate=$MINPEERS
+
+# get actual peer limit
+peerlimit=$(grep -oP '(?<=^peer\slimit\s)[0-9]+(?=\s*;$)' $fastdconf)
+
+[[ $peerlimit -gt $connection_limit_estimate ]] &&
+[[ $connection_limit_estimate -gt $connected_peer_amount ]] && exit 0
+
+exit 1
+
