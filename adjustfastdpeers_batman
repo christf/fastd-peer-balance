@@ -1,6 +1,6 @@
 #!/bin/bash
-fastdconf=( "/etc/fastd/sn4/main.conf" )
-BATCTL="/usr/local/sbin/batctl"
+fastdconf=( "/etc/fastd/mesh-vpn-1280/fastd.conf" "/etc/fastd/mesh-vpn-1426/fastd.conf" "/etc/fastd/mesh-vpn-1312/fastd.conf" )
+BATCTL="/usr/sbin/batctl"
 MINPEERS=50
 MAXPEERS=400
 
@@ -8,7 +8,7 @@ for i in ${fastdconf[@]}
 do
   net_peer_amount=$($BATCTL o |wc -l)
   peerlimit=$(grep -oP '(?<=^peer\slimit\s)[0-9]+(?=\s*;$)' ${i})
-  gwamount=$(($($BATCTL gwl -H |wc -l)-1))
+  gwamount=$($BATCTL gwl -H |wc -l)
   connection_average_estimate=$(( net_peer_amount / gwamount ))
   connection_limit_estimate=$((connection_average_estimate + (connection_limit_estimate * BUFFERPERCENTAGE)/100))
 
@@ -17,7 +17,7 @@ do
     [ $connection_limit_estimate -le $MINPEERS ] && connection_limit_estimate=$MINPEERS
     [ $connection_limit_estimate -ge $MAXPEERS ] && connection_limit_estimate=$MAXPEERS
 
-    sed -i "s/peer limit [0-9]*;/peer limit $connection_limit_estimate;/" ${i}
+    sed -i "s/peer limit [0-9]+;/peer limit $connection_limit_estimate;/" ${i}
     pkill -HUP -x fastd
   fi
 
