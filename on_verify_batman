@@ -13,9 +13,9 @@
 # other infrastructure (map/api).
 set -ix
 # things to adjust to your server
-fastdsockets=( "/var/run/fastd/fastd.sock", "/var/run/fastd/fastd2.sock" )
-fastdconf="/etc/fastd/sn4/main.conf"
-BATCTL="/usr/local/sbin/batctl"
+fastdsockets=( "/var/run/fastd-mesh-vpn-1280.sock" "/var/run/fastd-mesh-vpn-1312.sock" "/var/run/fastd-mesh-vpn-1426.sock" )
+fastdconf="/etc/fastd/mesh-vpn-1280/fastd.conf"
+BATCTL="/usr/sbin/batctl"
 MINPEERS=50
 BUFFERPERCENTAGE=10
 
@@ -27,16 +27,16 @@ BUFFERPERCENTAGE=10
 
 # estimate network size and amount of gateways
 net_peer_amount=$($BATCTL o |wc -l)
-gwamount=$(($($BATCTL gwl -H |wc -l)-1))
+gwamount=$($BATCTL gwl -H |wc -l)
 
 ## dirty count fastdconnections, 
 ## timeout means that connection on verify need 0.2 seconds, some consider this long!
 # 0.2 seconds per verify means there can 50 connections be verified per second. 
 connected_peer_amount=0
-for socket in ${fastdsockets[@]}
+for fastdsocket in ${fastdsockets[@]}
 do
-  connectd_peer_thisinstance=$(timeout .2 ncat -U  $fastdsocket |grep -c -o established)
-  ((connected_peer_amount+=connectd_peer_thisinstance))
+  connectd_peer_thisinstance=$(timeout --foreground .2 ncat -U  $fastdsocket |grep -o established|wc -l )
+  ((connected_peer_amount+=$connectd_peer_thisinstance))
 done
 
 # set connection limit and doing so, consider a buffersize
