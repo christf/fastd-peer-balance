@@ -28,6 +28,8 @@ MINPEERS=50
 BUFFERPERCENTAGE=10
 DISABLEFILE=/root/disabled
 
+# this file may be created manually to allow for maintenance
+[ -f $DISABLEFILE ] && exit 1
 
 # check if batctl is avail
 # otherwise we could try to read from proc sys directly
@@ -35,8 +37,6 @@ DISABLEFILE=/root/disabled
 # fastd will accept the peer.
 [ -x $BATCTL ] || exit 0
 
-# this file may be created manually to allow for maintenance
-[ -f $DISABLEFILE ] && exit 1
 
 # estimate network size and amount of gateways
 net_peer_amount=$($BATCTL o |wc -l)
