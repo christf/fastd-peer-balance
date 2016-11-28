@@ -41,6 +41,7 @@ DISABLEFILE=/root/disabled
 # estimate network size and amount of gateways
 net_peer_amount=$($BATCTL o |wc -l)
 gwamount=$($BATCTL gwl -H |wc -l)
+((gwamount+=1))
 
 ## dirty count fastdconnections, 
 ## timeout means that connection on verify need 0.2 seconds, some consider this long!
