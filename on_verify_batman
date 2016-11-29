@@ -22,12 +22,12 @@
 set -ix
 # things to adjust to your server
 fastdsockets=( "/var/run/fastd-mesh-vpn-1280.sock" "/var/run/fastd-mesh-vpn-1312.sock" "/var/run/fastd-mesh-vpn-1426.sock" )
-fastdconf="/etc/fastd/mesh-vpn-1280/fastd.conf"
+fastdconf="/etc/fastd/mesh-vpn-*/fastd.conf"
 FASTD_PEERCONNECTIONS=2
 BATCTL="/usr/sbin/batctl"
 MINPEERS=50
 BUFFERPERCENTAGE=10
-DISABLEFILE=/root/disabled
+DISABLEFILE=/root/disable
 
 # this file may be created manually to allow for maintenance
 [ -f $DISABLEFILE ] && exit 1
@@ -61,9 +61,21 @@ connection_limit_estimate=$((connection_average_estimate + (connection_limit_est
 [[ $connection_limit_estimate -lt $MINPEERS ]] && connection_limit_estimate=$MINPEERS
 
 # get actual peer limit
-peerlimit=$(grep -oP '(?<=^peer\slimit\s)[0-9]+(?=\s*;$)' $fastdconf)
+peerlimit=$(grep -oP '(?<=^peer\slimit\s)[0-9]+(?=\s*;$)' $fastdconf|awk -F: '{sum=sum+$2} END {print sum}')
 
-[[ $peerlimit -gt $connection_limit_estimate ]] &&
+[[ $peerlimit != *[!0-9]* ]] ||
+{
+    # set a sane default if peerlimit is not defined or not numeric
+    peerlimit=$((connection_limit_estimate+1))
+}
+
+[[ $peerlimit -gt $connection_limit_estimate ]] ||
+{
+  # if a peer limit has been set via fastd.conf, cap the connection limit
+  # estimate at that peer limit.
+  connection_limit_estimate=$peerlimit
+}
+
 [[ $connection_limit_estimate -gt $connected_peer_amount ]] && exit 0
 
 exit 1
